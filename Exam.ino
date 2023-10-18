@@ -32,7 +32,7 @@ bool lightOn = false;
 long lightMeasuringInterval = 1000;
 
 long lastLightTimestamp = -lightMeasuringInterval;
-long light = 100;
+long lux = 100;
 
 // Home Security System variables
 
@@ -87,8 +87,8 @@ void setup() {
 
     pinMode(MOTION_SENSOR, INPUT);
 
-    pinMode(LIGHT_SENSOR, A0);
-    pinMode(TEMPERATURE_SENSOR, A1);
+    pinMode(LIGHT_SENSOR, INPUT);
+    pinMode(TEMPERATURE_SENSOR, INPUT);
 
     attachInterrupt(digitalPinToInterrupt(EMERGENCY_BUTTON), emergencyButtonHandler, RISING);
     attachInterrupt(digitalPinToInterrupt(MOTION_SENSOR), motionHandler, RISING);
@@ -117,8 +117,12 @@ void measureIllumination() {
 
     if(delta > lightMeasuringInterval) {
 
-        const int lightRaw = analogRead(LIGHT_SENSOR);
-        light = map(lightRaw, 0, 120, 0, 100);
+        int lightRaw = analogRead(LIGHT_SENSOR);
+        double V_out = lightRaw * (5.0 / 1023.0);
+
+        const double R_ldr = (double)((10000.0 * (5.0 - V_out)) / V_out);
+
+        lux = 500 / (R_ldr / 1000);
 
         //TODO: Report light to ThingSpeak
 
@@ -165,7 +169,7 @@ void temperatureSystem() {
 void lightingSystem() {
 
     if(automaticLightControl) {
-        if(light < 30) {
+        if(lux < 500) {
             lightOn = true;
         } else {
             lightOn = false;
