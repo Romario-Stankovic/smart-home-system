@@ -16,54 +16,56 @@
 
 // Temperature Sensor parameters
 
-#define TEMP_SCALE 0.01
-#define TEMP_MIN 0
+#define TEMP_SCALE 0.01  // Scale factor of the sensor (V/℃)
+#define TEMP_MIN 0       // minimal temperature the sensor can measure (℃)
 
 // Light Sensor parameters
 
-#define R2 10000
+#define R2 10000  // Known resistance of the voltage divider (Ω)
 
 // System parameters
 
-#define VIN 5
-#define ADR 1024
+#define VIN 5     // Arduino output voltage
+#define ADR 1024  // Arduino ADC resolution
 
 // Temperature Control System variables
 
-bool automaticTemperatureControl = true;
-bool heatingOn = false;
-bool coolingOn = false;
+bool automaticTemperatureControl = true;  // Is automatic control turned on
+bool heatingOn = false;                   // Is the heating turned on
+bool coolingOn = false;                   // Is the cooling turned on
 
-int desiredTemperature = 20;
-int temperatureDelta = 3;
-long temperatureMeasuringInterval = 1000;
+int desiredTemperature = 20;               // Desired temperature (℃)
+int temperatureDelta = 3;                  // Min and max delta values from the desired temperature (℃)
 
-long lastTemperatureTimestamp = -temperatureMeasuringInterval;
-long temperature = 0;
+long temperatureMeasuringInterval = 600000;                     // Temperature measuring interval (ms)
+long lastTemperatureTimestamp = -temperatureMeasuringInterval;  // Last measured temperature timestamp (ms)
+
+long temperature = 0;  // Measured temperature (℃)
 
 // Light Control System variables
 
-bool automaticLightControl = true;
-bool lightOn = false;
-long lightMeasuringInterval = 1000;
+bool automaticLightControl = true;  // Is automatic control turned on
+bool lightOn = false;               // Is the light turned on
 
-long lastLightTimestamp = -lightMeasuringInterval;
-long illumination = 0;
+long lightMeasuringInterval = 600000;               // Illumination measuring interval (ms)
+long lastLightTimestamp = -lightMeasuringInterval;  // Last measured light timestamp (ms)
+
+long illumination = 0;  // Measured illumination (lux)
 
 // Home Security System variables
 
-long detectionInterval = 10000;
+long detectionDelay = 10000;  // No motion delay before the system returns to idle (ms)
 
-bool homeSecurityControl = false;
-long lastDetectionTimestamp = -detectionInterval;
+bool homeSecurityControl = false;               // Is home security mode active
+long lastDetectionTimestamp = -detectionDelay;  // Last detection (ms)
 
 // Emergency System variables
 
-bool emergency = false;
+bool emergency = false;  // Is emergency mode active
 
 // System variables
 
-long currentTimestamp;
+long currentTimestamp;  // Current timestamp
 
 void emergencyButtonHandler() {
     emergency = true;
@@ -79,7 +81,7 @@ void motionHandler() {
 
     const long delta = currentTimestamp - lastDetectionTimestamp;
 
-    if(delta > detectionInterval) {
+    if(delta > detectionDelay) {
         // TODO: Send email about detection
     }
 
@@ -202,7 +204,7 @@ void homeSecureSystem() {
 
     const long delta = currentTimestamp - lastDetectionTimestamp;
 
-    if(delta > detectionInterval) {
+    if(delta > detectionDelay) {
         digitalWrite(LIGHT, LOW);
     } else {
         digitalWrite(LIGHT, HIGH);
