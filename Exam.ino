@@ -171,7 +171,7 @@ void measureIllumination() {
         illumination = LIGHT_FACTOR / (R_ldr / 1000);
 
         // Report read illumination
-        Serial.println("illumination:" + String(temperature));
+        Serial.println("illumination:" + String(illumination));
 
         // Save detection timestamp
         lastLightTimestamp = currentTimestamp;
