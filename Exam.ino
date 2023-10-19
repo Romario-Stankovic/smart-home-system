@@ -1,3 +1,5 @@
+// Sensors and actuators
+
 #define COOLING_RELAY 12
 #define HEATING_RELAY 11
 
@@ -12,6 +14,20 @@
 #define LIGHT_SENSOR A0
 #define TEMPERATURE_SENSOR A1
 
+// Temperature Sensor parameters
+
+#define TEMP_SCALE 0.01
+#define TEMP_MIN 0
+
+// Light Sensor parameters
+
+#define R2 10000
+
+// System parameters
+
+#define VIN 5
+#define ADR 1024
+
 // Temperature Control System variables
 
 bool automaticTemperatureControl = true;
@@ -23,7 +39,7 @@ int temperatureDelta = 3;
 long temperatureMeasuringInterval = 1000;
 
 long lastTemperatureTimestamp = -temperatureMeasuringInterval;
-long temperature = 27;
+long temperature = 0;
 
 // Light Control System variables
 
@@ -32,7 +48,7 @@ bool lightOn = false;
 long lightMeasuringInterval = 1000;
 
 long lastLightTimestamp = -lightMeasuringInterval;
-long illumination = 500;
+long illumination = 0;
 
 // Home Security System variables
 
@@ -102,7 +118,9 @@ void measureTemperature() {
     if(delta > temperatureMeasuringInterval) {
         const int temperatureRaw = analogRead(TEMPERATURE_SENSOR);
 
-        temperature = map(temperatureRaw, 0, 306, -55, 150);
+        double V_out = temperatureRaw * ((double)VIN / ADR);
+
+        temperature = TEMP_MIN + (V_out / TEMP_SCALE);
 
         // TODO: Report temperature to ThingSpeak
 
@@ -118,9 +136,9 @@ void measureIllumination() {
     if(delta > lightMeasuringInterval) {
 
         int lightRaw = analogRead(LIGHT_SENSOR);
-        double V_out = lightRaw * (5.0 / 1023.0);
+        double V_out = lightRaw * ((double)VIN / ADR);
 
-        const double R_ldr = (double)((10000.0 * (5.0 - V_out)) / V_out);
+        const double R_ldr = ((R2 * (VIN - V_out)) / V_out);
 
         illumination = 500 / (R_ldr / 1000);
 
