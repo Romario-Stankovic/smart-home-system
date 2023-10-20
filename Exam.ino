@@ -85,7 +85,7 @@ void motionHandler() {
     const long delta = currentTimestamp - lastDetectionTimestamp;
 
     // If this is our first report in some time, send a notification
-    if(delta > detectionDelay) {
+    if(delta > detectionDelay && (homeSecurityControl || emergency)) {
         Serial.println("motion:notify");
     }
 
