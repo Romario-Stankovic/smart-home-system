@@ -282,7 +282,7 @@ void loop() {
 
         // Control temperature system and report back
         if(input.startsWith("thermostat:")) {
-            const String value = input.substring(12);
+            const String value = input.substring(11);
             if(value == "auto") {
                 heatingOn = false;
                 coolingOn = false;
@@ -303,7 +303,7 @@ void loop() {
 
         // Control lighting system and report back
         if(input.startsWith("lights:")) {
-            const String value = input.substring(6);
+            const String value = input.substring(7);
             if(value == "auto") {
                 automaticLightControl = true;
                 lightOn = false;
