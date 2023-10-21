@@ -38,7 +38,7 @@ bool coolingOn = false;                   // Is the cooling turned on
 int desiredTemperature = 20;               // Desired temperature (℃)
 int temperatureDelta = 3;                  // Min and max delta values from the desired temperature (℃)
 
-long temperatureMeasuringInterval = 600000;                     // Temperature measuring interval (ms)
+long temperatureMeasuringInterval = 10 * 60 * 1000;             // Temperature measuring interval (ms)
 long lastTemperatureTimestamp = -temperatureMeasuringInterval;  // Last measured temperature timestamp (ms)
 
 long temperature = 0;  // Measured temperature (℃)
@@ -48,7 +48,7 @@ long temperature = 0;  // Measured temperature (℃)
 bool automaticLightControl = true;  // Is automatic control turned on
 bool lightOn = false;               // Is the light turned on
 
-long lightMeasuringInterval = 600000;               // Illumination measuring interval (ms)
+long lightMeasuringInterval = 10 * 60 * 1000;       // Illumination measuring interval (ms)
 long lastLightTimestamp = -lightMeasuringInterval;  // Last measured light timestamp (ms)
 
 long illumination = 0;  // Measured illumination (lux)
@@ -298,6 +298,11 @@ void loop() {
                 coolingOn = true;
                 automaticTemperatureControl = false;
                 Serial.println("thermostat:cooling");
+            } else if (value == "off") {
+                heatingOn = false;
+                coolingOn = false;
+                automaticTemperatureControl = false;
+                Serial.println("thermostat:off");
             }
         }
 
