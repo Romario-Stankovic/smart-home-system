@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.image import MIMEImage
+from email.mime.text import MIMEText
 import io
 
 PORT = "COM4"
@@ -89,11 +90,11 @@ def getFeed():
 
         data.append({
             "date": datetime.datetime.strptime(feed['created_at'], "%Y-%m-%dT%H:%M:%SZ"),
-            "temperature": int(feed['field1']),
-            "illumination": int(feed['field2']),
-            "detections": int(feed['field3']),
-            "homeSecureModeDuration": int(feed['field4']),
-            "lightAutoModeDuration": int(feed['field5'])
+            "temperature": int(f) if (f := feed['field1']) != None else 0,
+            "illumination": int(f) if (f := feed['field2']) != None else 0,
+            "detections": int(f) if (f := feed['field3']) != None else 0,
+            "homeSecureModeDuration": int(f) if (f := feed['field4']) != None else 0,
+            "lightAutoModeDuration": int(f) if (f := feed['field5']) != None else 0
         })
 
     return data
@@ -115,7 +116,7 @@ def sendReportEmail():
 
     for feed in data:
 
-        if(feed['date'].date() != datetime.datetime.now().date() - datetime.timedelta(days=1)):
+        if(feed['date'].date() != datetime.datetime.now().date()):
             continue
 
         dates.append(feed['date'])
@@ -125,7 +126,7 @@ def sendReportEmail():
         homeSecureModeDuration.append(feed['homeSecureModeDuration'])
         lightAutoModeDuration.append(feed['lightAutoModeDuration'])
 
-    date = dates[0].strftime("%d/%m/%Y")
+    date = datetime.datetime.now().date()
 
     minTemperature = min(temperature)
     maxTemperature = max(temperature)
@@ -162,14 +163,37 @@ def sendReportEmail():
     plt.ylabel("Detections")
     plt.savefig(detectionsGraph, format="png")
 
-    message['Message'] = "Report"
+    plt.clf()
+
+    message.preamble = "==========="
+
+    html = f"""
+        <html>
+            <body>
+                <h1>Report for {date}</h1>
+                <h2>Temperature</h2>
+                <p>Minimum: {minTemperature} &deg;C</p>
+                <p>Maximum: {maxTemperature} &deg;C</p>
+                <p>Average: {avgTemperature} &deg;C</p>
+                <h2>Illumination</h2>
+                <p>Minimum: {minIllumination} lux</p>
+                <p>Maximum: {maxIllumination} lux</p>
+                <p>Average: {avgIllumination} lux</p>
+                <h2>Detections</h2>
+                <p>Total: {totalDetections}</p>
+                <h2>Home Secure Mode Duration</h2>
+                <p>Total: {totalHomeSecureModeDuration} ms</p>
+                <h2>Light Auto Mode Duration</h2>
+                <p>Total: {totalLightAutoModeDuration} ms</p>
+            </body>
+        </html>
+    """
+
+    message['Subject'] = "Report"
     message.attach(MIMEImage(temperatureGraph.getvalue()))
     message.attach(MIMEImage(illuminationGraph.getvalue()))
     message.attach(MIMEImage(detectionsGraph.getvalue()))
-
-    # send body
-
-    message['Body'] = f"Test"
+    message.attach(MIMEText(html, 'html'))
 
     server = smtplib.SMTP_SSL("smtp.gmail.com", 465)
     server.login(EMAIL, EMAIL_PW)
