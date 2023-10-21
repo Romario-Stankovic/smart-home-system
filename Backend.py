@@ -11,6 +11,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.image import MIMEImage
 from email.mime.text import MIMEText
 import io
+from apscheduler.schedulers.background import BackgroundScheduler
 
 PORT = "COM4"
 BAUD_RATE = 9600
@@ -318,5 +319,13 @@ readingThread.start()
 time.sleep(5)
 writingThread.start()
 
-while True:
-    pass
+scheduler = BackgroundScheduler()
+scheduler.add_job(sendReportEmail, 'cron', hour=23, minute=59)
+scheduler.start()
+
+try:
+    print("Backend started")
+    while(True):
+        pass
+except KeyboardInterrupt:
+    scheduler.shutdown()
