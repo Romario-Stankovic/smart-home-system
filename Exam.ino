@@ -58,6 +58,7 @@ long illumination = 0;  // Measured illumination (lux)
 long detectionDelay = 10000;  // No motion delay before the system returns to idle (ms)
 
 bool homeSecurityControl = false;               // Is home security mode active
+bool previousHomeSecurityControl = false;       // Previous home security mode state
 long lastDetectionTimestamp = -detectionDelay;  // Last detection (ms)
 
 // Emergency System variables
@@ -72,6 +73,8 @@ long currentTimestamp;  // Current timestamp
 void emergencyButtonHandler() {
     // Enable emergency mode
     emergency = true;
+    previousHomeSecurityControl = homeSecurityControl;
+    homeSecurityControl = true;
 
     // Send information using serial connection
     Serial.println("emergency:on");
@@ -85,7 +88,7 @@ void motionHandler() {
     const long delta = currentTimestamp - lastDetectionTimestamp;
 
     // If this is our first report in some time, send a notification
-    if(delta > detectionDelay && (homeSecurityControl || emergency)) {
+    if(delta > detectionDelay && homeSecurityControl) {
         Serial.println("motion:notify");
     }
 
@@ -277,6 +280,10 @@ void loop() {
             if(value == "off") {
                 emergency = false;
                 Serial.println("emergency:off");
+                homeSecurityControl = previousHomeSecurityControl;
+                if(!homeSecurityControl) {
+                    Serial.println("security:off");
+                }
             }
         }
 
@@ -325,8 +332,8 @@ void loop() {
 
         }
 
-        // Control home security system and report back
-        if(input.startsWith("security:")) {
+        // Control home security system and report back if it is not in emergency mode
+        if(input.startsWith("security:") && !emergency) {
             const String value = input.substring(9);
             if(value == "on") {
                 homeSecurityControl = true;
@@ -347,7 +354,7 @@ void loop() {
     emergencySystem();
 
     // Control light
-    if(homeSecurityControl || emergency) {
+    if(homeSecurityControl) {
         homeSecureSystem();
     } else {
         lightingSystem();

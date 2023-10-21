@@ -28,13 +28,19 @@ READ_ILLUMINATION_URL = f"{BASE_URL}/channels/{CHANNEL_ID}/fields/1.json?api_key
 EMAIL="iottesting8@gmail.com"
 EMAIL_PW="usqidspfrqsqzodn"
 
-SEND_INTERVAL = 15
+THINGSPEAK_SEND_INTERVAL = 15
+EMAIL_READ_INTERVAL = 5
 
 data = {
     "temperature": 0,
     "illumination": 0,
-    "detections": 0
+    "detections": 0,
+    "homeSecureModeDuration": 0,
+    "lightAutoModeDuration": 0
 }
+
+homeSecureStartTime = None
+lightAutoModeStartTime = None
 
 def readSerial(serial : Serial):
     while True:
@@ -49,18 +55,28 @@ def readSerial(serial : Serial):
             elif(message.startswith("motion:detected")):
                 data["detections"] += 1
             elif(message.startswith("motion:notify")):
-                sendMotionAlert()
+                sendMotionAlertEmail()
+            elif(message.startswith("security:on")):
+                homeSecureStartTime = datetime.datetime.now()
+            elif(message.startswith("security:off")):
+                data["homeSecureModeDuration"] += datetime.datetime.now() - homeSecureStartTime
+                homeSecureStartTime = None
+            elif(message.startswith("lights:auto")):
+                lightAutoModeStartTime = datetime.datetime.now()
+            elif(message.startswith("lights:on") or message.startswith("lights:off")):
+                data["lightAutoModeDuration"] += datetime.datetime.now() - lightAutoModeStartTime
+                lightAutoModeStartTime = None
 
             print(data)
 
 def sendDataToThingSpeak(data : dict):
     while True:
-        url = f"{WRITE_URL}&field1={data['temperature']}&field2={data['illumination']}&field3={data['detections']}"
+        url = f"{WRITE_URL}&field1={data['temperature']}&field2={data['illumination']}&field3={data['detections']}&field4={data['homeSecureModeDuration']}&field5={data['lightAutoModeDuration']}"
 
         with requests.get(url, verify=False) as response:
             print(response.text)
 
-        time.sleep(SEND_INTERVAL)
+        time.sleep(THINGSPEAK_SEND_INTERVAL)
 
 def getFeed():
     response = requests.get(READ_CHANNEL_URL)
@@ -75,7 +91,9 @@ def getFeed():
             "date": datetime.datetime.strptime(feed['created_at'], "%Y-%m-%dT%H:%M:%SZ"),
             "temperature": int(feed['field1']),
             "illumination": int(feed['field2']),
-            "detections": 0 if feed['field3'] == None else int(feed['field3'])
+            "detections": int(feed['field3']),
+            "homeSecureModeDuration": int(feed['field4']),
+            "lightAutoModeDuration": int(feed['field5'])
         })
 
     return data
@@ -92,6 +110,8 @@ def sendReportEmail():
     temperature = []
     illumination = []
     detections = []
+    homeSecureModeDuration = []
+    lightAutoModeDuration = []
 
     for feed in data:
 
@@ -102,6 +122,8 @@ def sendReportEmail():
         temperature.append(feed['temperature'])
         illumination.append(feed['illumination'])
         detections.append(feed['detections'])
+        homeSecureModeDuration.append(feed['homeSecureModeDuration'])
+        lightAutoModeDuration.append(feed['lightAutoModeDuration'])
 
     date = dates[0].strftime("%d/%m/%Y")
 
@@ -114,6 +136,9 @@ def sendReportEmail():
     avgIllumination = np.mean(illumination)
 
     totalDetections = sum(detections)
+
+    totalHomeSecureModeDuration = sum(homeSecureModeDuration)
+    totalLightAutoModeDuration = sum(lightAutoModeDuration)
 
     plt.plot_date(dates, temperature, linestyle='solid', markersize=3)
     plt.title(date)
@@ -152,7 +177,7 @@ def sendReportEmail():
     server.quit()
     print("Email sent")
 
-def sendMotionAlert():
+def sendMotionAlertEmail():
     message = MIMEMultipart()
     message['Subject'] = "Motion Detected"
     server = smtplib.SMTP_SSL("smtp.gmail.com", 465)
@@ -214,7 +239,7 @@ def checkEmail(serial : Serial):
             for id in emailIds:
                 email.store(id, '+FLAGS', '\\Seen')
             serial.write(b"thermostat:off\n")
-        
+
         # Set lights to auto
         retcode, response = email.search(None, '(SUBJECT "SET LIGHTS AUTO" UNSEEN)')
         if(len(response[0]) > 0):
@@ -222,7 +247,7 @@ def checkEmail(serial : Serial):
             for id in emailIds:
                 email.store(id, '+FLAGS', '\\Seen')
             serial.write(b"lights:auto\n")
-        
+
         # Set lights to on
         retcode, response = email.search(None, '(SUBJECT "SET LIGHTS ON" UNSEEN)')
         if(len(response[0]) > 0):
@@ -245,7 +270,8 @@ def checkEmail(serial : Serial):
             emailIds = response[0].split()
             for id in emailIds:
                 email.store(id, '+FLAGS', '\\Seen')
-        
+            serial.write(b"security:on\n")
+
         # Set home security to off
         retcode, response = email.search(None, '(SUBJECT "SET HOME SECURITY OFF" UNSEEN)')
         if(len(response[0]) > 0):
@@ -253,8 +279,9 @@ def checkEmail(serial : Serial):
             for id in emailIds:
                 serial.write(b"security:off\n")
                 email.store(id, '+FLAGS', '\\Seen')
-        time.sleep(5)
+            serial.write(b"security:off\n")
 
+        time.sleep(EMAIL_READ_INTERVAL)
 
 serial = Serial(PORT, BAUD_RATE)
 
