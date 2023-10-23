@@ -63,6 +63,9 @@ def readSerial(serial : Serial):
             # Read the message
             message = serial.readline().decode('ascii')
 
+            # Print data to serial for debugging
+            print("Serial: ", message, end="")
+
             if(message.startswith("temperature:")):
                 # Store current measured temperature
                 data['temperature'] = int(message[12:])
@@ -87,9 +90,9 @@ def readSerial(serial : Serial):
             elif(message.startswith("lights:on") or message.startswith("lights:off")):
                 # if lights is manually set, save current datetime
                 lastLightAutoModeTimestamp = None
-
-            # Print data to serial for debugging
-            print("Serial: ", message, end="")
+            elif(message.startswith("emergency:on")):
+                # if emergency mode has been triggered, send notification email
+                sendEmergencyAlertEmail()
 
         # Add deltaTime to homeSecureDuration
         if(lastHomeSecureTimestamp != None):
@@ -273,6 +276,16 @@ def sendMotionAlertEmail():
     server.sendmail(EMAIL, EMAIL, message.as_string())
     server.quit()
     print("Email: Motion alert sent")
+
+# Send emergency alert
+def sendEmergencyAlertEmail():
+    message = MIMEMultipart()
+    message['Subject'] = "Emergency Mode Activated"
+    server = smtplib.SMTP_SSL("smtp.gmail.com", 465)
+    server.login(EMAIL, EMAIL_PW)
+    server.sendmail(EMAIL, EMAIL, message.as_string())
+    server.quit()
+    print("Email: Emergency alert sent")
 
 # Check email for commands
 def checkEmail(serial : Serial):
