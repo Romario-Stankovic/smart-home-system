@@ -42,9 +42,13 @@ data = {
 }
 
 homeSecureStartTime = None
-lightAutoModeStartTime = None
+lightAutoModeStartTime = datetime.datetime.now()
 
 def readSerial(serial : Serial):
+
+    global homeSecureStartTime
+    global lightAutoModeStartTime
+
     while True:
         if serial.in_waiting > 0:
 
@@ -61,22 +65,33 @@ def readSerial(serial : Serial):
             elif(message.startswith("security:on")):
                 homeSecureStartTime = datetime.datetime.now()
             elif(message.startswith("security:off")):
-                data["homeSecureModeDuration"] += datetime.datetime.now() - homeSecureStartTime
                 homeSecureStartTime = None
             elif(message.startswith("lights:auto")):
                 lightAutoModeStartTime = datetime.datetime.now()
             elif(message.startswith("lights:on") or message.startswith("lights:off")):
-                data["lightAutoModeDuration"] += datetime.datetime.now() - lightAutoModeStartTime
                 lightAutoModeStartTime = None
 
-            print(data)
+            print(message, end="")
+
+        if(homeSecureStartTime != None):
+            homeSecureDuration = (datetime.datetime.now() - homeSecureStartTime).total_seconds()
+            data['homeSecureModeDuration'] += homeSecureDuration
+            homeSecureStartTime = datetime.datetime.now()
+
+        if(lightAutoModeStartTime != None):
+            lightAutoDuration = (datetime.datetime.now() - lightAutoModeStartTime).total_seconds()
+            data['lightAutoModeDuration'] += lightAutoDuration
+            lightAutoModeStartTime = datetime.datetime.now()
 
 def sendDataToThingSpeak(data : dict):
     while True:
-        url = f"{WRITE_URL}&field1={data['temperature']}&field2={data['illumination']}&field3={data['detections']}&field4={data['homeSecureModeDuration']}&field5={data['lightAutoModeDuration']}"
+        url = f"{WRITE_URL}&field1={data['temperature']}&field2={data['illumination']}&field3={data['detections']}&field4={round(data['homeSecureModeDuration'])}&field5={round(data['lightAutoModeDuration'])}"
 
-        with requests.get(url, verify=False) as response:
-            print(response.text)
+        with requests.get(url) as response:
+            print('Data sent')
+            data['detections'] = 0
+            data['homeSecureModeDuration'] = 0
+            data['lightAutoModeDuration'] = 0
 
         time.sleep(THINGSPEAK_SEND_INTERVAL)
 
@@ -231,7 +246,7 @@ def checkEmail(serial : Serial):
             emailIds = response[0].split()
             for id in emailIds:
                 email.store(id, '+FLAGS', '\\Seen')
-            serial.write(b"emergency:off\n")
+            serial.write("emergency:off".encode('ascii'))
 
         # Set thermostat to auto
         retcode, response = email.search(None, '(SUBJECT "SET THERMOSTAT AUTO" UNSEEN)')
@@ -239,7 +254,7 @@ def checkEmail(serial : Serial):
             emailIds = response[0].split()
             for id in emailIds:
                 email.store(id, '+FLAGS', '\\Seen')
-            serial.write(b"thermostat:auto\n")
+            serial.write("thermostat:auto".encode('ascii'))
 
         # Set thermostat to heating
         retcode, response = email.search(None, '(SUBJECT "SET THERMOSTAT HEATING" UNSEEN)')
@@ -247,7 +262,7 @@ def checkEmail(serial : Serial):
             emailIds = response[0].split()
             for id in emailIds:
                 email.store(id, '+FLAGS', '\\Seen')
-            serial.write(b"thermostat:heating\n")
+            serial.write("thermostat:heating".encode('ascii'))
 
         # Set thermostat to cooling
         retcode, response = email.search(None, '(SUBJECT "SET THERMOSTAT COOLING" UNSEEN)')
@@ -255,7 +270,7 @@ def checkEmail(serial : Serial):
             emailIds = response[0].split()
             for id in emailIds:
                 email.store(id, '+FLAGS', '\\Seen')
-            serial.write(b"thermostat:cooling\n")
+            serial.write("thermostat:cooling".encode('ascii'))
 
         # Set thermostat to off
         retcode, response = email.search(None, '(SUBJECT "SET THERMOSTAT OFF" UNSEEN)')
@@ -263,7 +278,7 @@ def checkEmail(serial : Serial):
             emailIds = response[0].split()
             for id in emailIds:
                 email.store(id, '+FLAGS', '\\Seen')
-            serial.write(b"thermostat:off\n")
+            serial.write("thermostat:off".encode('ascii'))
 
         # Set lights to auto
         retcode, response = email.search(None, '(SUBJECT "SET LIGHTS AUTO" UNSEEN)')
@@ -271,7 +286,7 @@ def checkEmail(serial : Serial):
             emailIds = response[0].split()
             for id in emailIds:
                 email.store(id, '+FLAGS', '\\Seen')
-            serial.write(b"lights:auto\n")
+            serial.write("lights:auto".encode('ascii'))
 
         # Set lights to on
         retcode, response = email.search(None, '(SUBJECT "SET LIGHTS ON" UNSEEN)')
@@ -279,7 +294,7 @@ def checkEmail(serial : Serial):
             emailIds = response[0].split()
             for id in emailIds:
                 email.store(id, '+FLAGS', '\\Seen')
-            serial.write(b"lights:on\n")
+            serial.write("lights:on".encode('ascii'))
 
         # Set lights to off
         retcode, response = email.search(None, '(SUBJECT "SET LIGHTS OFF" UNSEEN)')
@@ -287,7 +302,7 @@ def checkEmail(serial : Serial):
             emailIds = response[0].split()
             for id in emailIds:
                 email.store(id, '+FLAGS', '\\Seen')
-            serial.write(b"lights:off\n")
+            serial.write("lights:off".encode('ascii'))
 
         # Set home security to on
         retcode, response = email.search(None, '(SUBJECT "SET HOME SECURITY ON" UNSEEN)')
@@ -295,16 +310,15 @@ def checkEmail(serial : Serial):
             emailIds = response[0].split()
             for id in emailIds:
                 email.store(id, '+FLAGS', '\\Seen')
-            serial.write(b"security:on\n")
+            serial.write("security:on".encode('ascii'))
 
         # Set home security to off
         retcode, response = email.search(None, '(SUBJECT "SET HOME SECURITY OFF" UNSEEN)')
         if(len(response[0]) > 0):
             emailIds = response[0].split()
             for id in emailIds:
-                serial.write(b"security:off\n")
                 email.store(id, '+FLAGS', '\\Seen')
-            serial.write(b"security:off\n")
+            serial.write("security:off".encode('ascii'))
 
         time.sleep(EMAIL_READ_INTERVAL)
 
