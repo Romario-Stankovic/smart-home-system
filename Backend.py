@@ -31,7 +31,7 @@ EMAIL="iottesting8@gmail.com"
 EMAIL_PW="usqidspfrqsqzodn"
 
 # System variables
-THINGSPEAK_SEND_INTERVAL = 600000
+THINGSPEAK_SEND_INTERVAL = 600
 EMAIL_READ_INTERVAL = 5
 
 # data object that stores all data sent to ThingSpeak
@@ -183,12 +183,12 @@ def sendReportEmail():
     # Calculate minimum, maximum and average temperature
     minTemperature = min(temperature)
     maxTemperature = max(temperature)
-    avgTemperature = np.mean(temperature)
+    avgTemperature = round(np.mean(temperature), 2)
 
     # Calculate minimum, maximum and average illumination
     minIllumination = min(illumination)
     maxIllumination = max(illumination)
-    avgIllumination = np.mean(illumination)
+    avgIllumination = round(np.mean(illumination), 2)
 
     # Calculate total number of detections
     totalDetections = sum(detections)
