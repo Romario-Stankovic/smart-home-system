@@ -12,27 +12,31 @@ from email.mime.image import MIMEImage
 from email.mime.text import MIMEText
 import io
 from apscheduler.schedulers.background import BackgroundScheduler
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 # Arduino variables
-PORT = "COM4"
-BAUD_RATE = 9600
+PORT = os.getenv("ARDUINO_PORT")
+BAUD_RATE = os.getenv("ARDUINO_BAUD_RATE")
 
 # ThingSpeak variables
-CHANNEL_ID = "2312725"
-API_WRITE_KEY = "M4Y0OGXWF2CU4RI2"
-API_READ_KEY = "OLV9MKWYCU5JPJXQ"
+CHANNEL_ID = os.getenv("THINGSPEAK_CHANNEL_ID")
+API_WRITE_KEY = os.getenv("THINGSPEAK_API_WRITE_KEY")
+API_READ_KEY = os.getenv("THINGSPEAK_API_READ_KEY")
 
 BASE_URL = "https://api.thingspeak.com"
 WRITE_URL = f"{BASE_URL}/update?api_key={API_WRITE_KEY}"
 READ_CHANNEL_URL = f"{BASE_URL}/channels/{CHANNEL_ID}/feeds.json?api_key={API_READ_KEY}"
 
 # Email variables
-EMAIL="iottesting8@gmail.com"
-EMAIL_PW="usqidspfrqsqzodn"
+EMAIL=os.getenv("EMAIL")
+EMAIL_PW=os.getenv("EMAIL_PASSWORD")
 
 # System variables
-THINGSPEAK_SEND_INTERVAL = 600
-EMAIL_READ_INTERVAL = 5
+THINGSPEAK_SEND_INTERVAL = os.getenv("THINGSPEAK_SEND_INTERVAL")
+EMAIL_READ_INTERVAL = os.getenv("EMAIL_READ_INTERVAL")
 
 # data object that stores all data sent to ThingSpeak
 data = {
